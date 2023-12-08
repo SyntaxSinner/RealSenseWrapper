@@ -1,8 +1,11 @@
-import pyrealsense2 as rs
+from realsensewrapper import pyrealsense2 as rs
 import numpy as np 
 import cv2 
 import math
 from matplotlib import pyplot as plt
+import time
+import uuid
+import os
 
 """
 This class is a wrapper for the realsense camera. It contains methods for : 
@@ -16,7 +19,7 @@ This class is a wrapper for the realsense camera. It contains methods for :
 """
 
 
-class RealSenseWrapper:
+class RealsenseWrapper:
     
     #Constructor for the RealSenseWrapper class, through it you can set the resolution and FPS of the RGB and Depth streams
     def __init__(self,color_resolution = (1280, 720), depth_resolution = (1280, 720), depth_fps = 30, color_fps = 30):
@@ -28,7 +31,7 @@ class RealSenseWrapper:
         self.align = rs.align(rs.stream.color)
         
         #retrieve the intrinsics of the camera to perform calculations later
-        self.intrinsics = rs.pyrealsense2.intrinsics()
+        self.intrinsics = rs.intrinsics()
         
         #config object to configure the pipeline and set up the RGB resolution, Depth, Depth format and FPS
         self.config = rs.config()
@@ -47,7 +50,7 @@ class RealSenseWrapper:
                                   color_fps)
         
         #Retrieve the the intrinsics of the camera for potential calculations
-        self.intrinsics = rs.pyrealsense2.intrinsics()
+        self.intrinsics = rs.intrinsics()
         
         #Define the intrinsics of the camera 
         self.intrinsics.width = color_resolution[0]
@@ -127,6 +130,7 @@ class RealSenseWrapper:
         del self.history[:]
         
     def rgbd_stream(self, enable_filters=True):
+        self.define_set_filters()
         # Start streaming
         self.pipeline.start(self.config)
         print('Streaming started')
@@ -204,7 +208,7 @@ class RealSenseWrapper:
 
 
     def rgbd_shot(self, enable_cache=True, enable_filters=True):
-        
+        self.define_set_filters()
         i=0
         
         self.pipeline.start(self.config)
@@ -271,7 +275,9 @@ class RealSenseWrapper:
         
         #Store the RGB And depth images in the history as a tupple for later inspection
         
-    def headless_shot(self, enable_filters=True):
+    def headless_shot(self, enable_filters=True, ttt_shot=10):
+        
+        self.define_set_filters()
         self.pipeline.start(self.config)
 
         color_frame = None
@@ -279,12 +285,15 @@ class RealSenseWrapper:
         frameset = None
 
         while True:
-            key = cv2.waitKey(1)
+            
             color_frame = None
             depth_frame = None
-
+            start_time=time.time()
+            
+            
             # Perform filtering over 8 consecutive frames
             for _ in range(self.frame_set_size):
+                
                 frameset = self.pipeline.wait_for_frames()
 
                 if enable_filters:
@@ -295,15 +304,31 @@ class RealSenseWrapper:
                 depth_frame = aligned_frameset.get_depth_frame()
                 color_frame = aligned_frameset.get_color_frame()
 
-            if key == ord('p'):
-                self.pipeline.stop()
-                return np.asanyarray(color_frame.get_data()), np.asanyarray(depth_frame.get_data())
-            elif key == ord('q'):
-                self.pipeline.stop()
-                break
+                current_time=time.time()
+                elapsed_time = current_time - start_time
+            
+                if elapsed_time >= ttt_shot :
+                    rgb_array = np.asanyarray(color_frame.get_data())
+                    depth_array = np.asanyarray(depth_frame.get_data())
+                    self.pipeline.stop()
+                    unique_id = str(uuid.uuid4())
+                    rgb_filename = f"rgb_{unique_id}.png"
+                    depth_filename = f"depth_{unique_id}.npy"
 
-        # It's better to return something to handle the case when the loop breaks
-        return None, None
+                    if not os.path.exists("rgb"):
+                        os.makedirs("rgb")
+                    if not os.path.exists("depth"):
+                        os.makedirs("depth")
+
+                    cv2.imwrite(os.path.join("rgb", rgb_filename), rgb_array)
+                    np.save(os.path.join("depth", depth_filename), depth_array)
+
+
+                    return(unique_id)
+                    
+                    
+                
+                
     
     """
     starts a video stream of the color and depth cameras with the background removed
@@ -312,7 +337,7 @@ class RealSenseWrapper:
     """
     
     def depth_filter_stream(self, enable_filters = True, clipping_distance_in_meters = 1):
-        
+        self.define_set_filters()
         i=0
         #start the pipeline and get the profile
         profile=self.pipeline.start(self.config)
@@ -479,3 +504,17 @@ class RealSenseWrapper:
         axes[1].axis('off')
 
         plt.show()
+
+
+
+
+
+
+
+        
+        
+        
+        
+    
+    
+  

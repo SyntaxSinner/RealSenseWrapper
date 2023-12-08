@@ -26,4 +26,5 @@ This codebase serves as a debugging tool for depth-enhanced applications, enabli
     ```bash
     pip install -r requirements.txt
     ```
-4. Check the small notebook provided in order to quickly test the wrapper 
+## Usage
+Check the small notebook provided in order to quickly test the wrapper 

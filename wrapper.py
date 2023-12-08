@@ -1,4 +1,4 @@
-from realsensewrapper import pyrealsense2 as rs
+import pyrealsense2 as rs
 import numpy as np 
 import cv2 
 import math
@@ -49,25 +49,11 @@ class RealsenseWrapper:
                                   rs.format.bgr8,
                                   color_fps)
         
-        #Retrieve the the intrinsics of the camera for potential calculations
-        self.intrinsics = rs.intrinsics()
-        
-        #Define the intrinsics of the camera 
-        self.intrinsics.width = color_resolution[0]
-        self.intrinsics.height = color_resolution[1]
-        self.intrinsics.coeffs = [0.0,0.0,0.0,0.0,0.0]
-        self.intrinsics.fx = 608.9461669921875
-        self.intrinsics.fy = 608.7058715820312
-        self.intrinsics.ppx = 414.19677734375
-        self.intrinsics.ppy = 251.19134521484375
-        
         #align object to use for aligning depth to color frames
         self.align = rs.align(rs.stream.color)
         
         #history list to store the images taken by the rgbd_shot method
         self.history = []
-        
-        #Defining filter modes
         
         #1)Spatial filter
         self.spatial_magnitude = 3
@@ -86,7 +72,6 @@ class RealsenseWrapper:
         self.depth_to_disparity = rs.disparity_transform(True)
         self.disparity_to_depth = rs.disparity_transform(False)
         
-        
         #Define the number of frames to consider for the temporal filter when filtering the depth stream
         self.frame_set_size = 8
         
@@ -94,7 +79,6 @@ class RealsenseWrapper:
         self.enable_temporal=True, 
         self.enable_hole_filling=False
         
-       
     #Define filters 
     def define_set_spatial(self):
             
@@ -504,17 +488,3 @@ class RealsenseWrapper:
         axes[1].axis('off')
 
         plt.show()
-
-
-
-
-
-
-
-        
-        
-        
-        
-    
-    
-  
